@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         B站数据管理器
 // @namespace    http://tampermonkey.net/
-// @version      2.2
-// @description  自动获取并保存B站数据，在指定页面查询
+// @version      2.3
+// @description  自动获取并保存B站数据，在指定页面查询（新增敏感数据脱敏和写操作限频优化）
 // @author       You
 // @match        *://*.bilibili.com/*
 // @match        http://192.168.31.173:12345/*
@@ -17,18 +17,76 @@
 (function() {
     'use strict';
 
+    // ===== 核心优化说明 =====
+    // 1. 隐私保护：敏感数据（SESSDATA、bili_jct）在UI展示时自动脱敏，防止截屏泄露
+    // 2. 写操作限频：通过数据指纹校验，只有当Cookie变化或距离上次保存超过1小时时才执行写入
+
     const STORAGE_KEY = 'bilibili_saved_data';
+    const LAST_SAVE_TIME_KEY = 'bilibili_last_save_time';
+    const LAST_SAVE_HASH_KEY = 'bilibili_last_save_hash';
     const isBilibiliSite = window.location.hostname.includes('bilibili.com');
 
-    // 保存数据到GM存储
+    // 计算数据指纹（用于判断数据是否变化）
+    function calculateDataHash(data) {
+        const str = JSON.stringify(data);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash.toString(36);
+    }
+
+    // 敏感数据脱敏处理
+    function maskSensitiveData(key, value) {
+        if (!value) return value;
+
+        // 需要脱敏的敏感字段
+        const sensitiveKeys = ['SESSDATA', 'bili_jct'];
+
+        // 如果不是敏感字段，直接返回原值
+        if (!sensitiveKeys.includes(key)) {
+            return value;
+        }
+
+        // 敏感字段脱敏：显示前4位和后4位，中间用****代替
+        const str = String(value);
+        if (str.length <= 8) {
+            // 如果字符串太短，显示前2位和后2位
+            return str.length <= 4 ? '****' : str.slice(0, 2) + '****' + str.slice(-2);
+        }
+
+        return str.slice(0, 4) + '****' + str.slice(-4);
+    }
+
+    // 保存数据到GM存储（带限频控制）
     function saveData(data) {
+        const currentHash = calculateDataHash(data);
+        const lastSaveTime = GM_getValue(LAST_SAVE_TIME_KEY, 0);
+        const lastSaveHash = GM_getValue(LAST_SAVE_HASH_KEY, '');
+        const now = Date.now();
+        const ONE_HOUR = 60 * 60 * 1000;
+
+        // 检查是否需要保存：数据变化 或 距离上次保存超过1小时
+        const dataChanged = currentHash !== lastSaveHash;
+        const timeExpired = (now - lastSaveTime) > ONE_HOUR;
+
+        if (!dataChanged && !timeExpired) {
+            console.log('ℹ️ 数据未变化且未超时，跳过保存');
+            return false;
+        }
+
         const saveData = {
             data: data,
-            timestamp: Date.now(),
+            timestamp: now,
             url: window.location.href
         };
         GM_setValue(STORAGE_KEY, saveData);
+        GM_setValue(LAST_SAVE_TIME_KEY, now);
+        GM_setValue(LAST_SAVE_HASH_KEY, currentHash);
         console.log('✅ 数据已保存到GM存储');
+        return true;
     }
 
     // 从GM存储读取数据
@@ -45,9 +103,6 @@
 
     // 目标Cookie列表
     const targetCookies = ['SESSDATA', 'bili_jct', 'buvid3', 'DedeUserID'];
-
-    // 防止重复保存
-    let lastSavedData = null;
 
     // 检查数据是否完整
     function isDataComplete(data) {
@@ -114,23 +169,17 @@
                 return allData;
             }
 
-            // 检查是否与上次保存的数据相同
-            const dataStr = JSON.stringify(allData);
-            if (lastSavedData === dataStr) {
-                console.log('ℹ️ 数据未变化，跳过保存');
-                return allData;
+            // 自动保存数据（saveData内部已包含限频检查）
+            const saved = saveData(allData);
+
+            // 显示通知（仅在真正保存时）
+            if (saved) {
+                GM_notification({
+                    title: 'B站数据已保存',
+                    text: '数据已自动保存，可在 http://192.168.31.173:12345/ 查看',
+                    timeout: 3000
+                });
             }
-
-            // 自动保存数据
-            saveData(allData);
-            lastSavedData = dataStr;
-
-            // 显示通知
-            GM_notification({
-                title: 'B站数据已保存',
-                text: '数据已自动保存，可在 http://192.168.31.173:12345/ 查看',
-                timeout: 3000
-            });
 
             return allData;
         }).catch(error => {
@@ -331,12 +380,44 @@
         } else {
             const cookies = savedData.data.cookies;
             const localStorage = savedData.data.localStorage;
+
+            // 应用脱敏处理
             const dataFields = [
-                { key: 'SESSDATA', value: cookies.SESSDATA, icon: '🔑', color: '#fb7299' },
-                { key: 'bili_jct', value: cookies.bili_jct, icon: '🛡️', color: '#23ade5' },
-                { key: 'buvid3', value: cookies.buvid3, icon: '📍', color: '#9966ff' },
-                { key: 'DedeUserID', value: cookies.DedeUserID, icon: '👤', color: '#ff9500' },
-                { key: 'ac_time_value', value: localStorage.ac_time_value, icon: '⏰', color: '#34c759' }
+                {
+                    key: 'SESSDATA',
+                    value: maskSensitiveData('SESSDATA', cookies.SESSDATA),
+                    originalValue: cookies.SESSDATA,
+                    icon: '🔑',
+                    color: '#fb7299'
+                },
+                {
+                    key: 'bili_jct',
+                    value: maskSensitiveData('bili_jct', cookies.bili_jct),
+                    originalValue: cookies.bili_jct,
+                    icon: '🛡️',
+                    color: '#23ade5'
+                },
+                {
+                    key: 'buvid3',
+                    value: cookies.buvid3,
+                    originalValue: cookies.buvid3,
+                    icon: '📍',
+                    color: '#9966ff'
+                },
+                {
+                    key: 'DedeUserID',
+                    value: cookies.DedeUserID,
+                    originalValue: cookies.DedeUserID,
+                    icon: '👤',
+                    color: '#ff9500'
+                },
+                {
+                    key: 'ac_time_value',
+                    value: localStorage.ac_time_value,
+                    originalValue: localStorage.ac_time_value,
+                    icon: '⏰',
+                    color: '#34c759'
+                }
             ];
 
             // 检查数据新鲜度
@@ -372,10 +453,10 @@
                                     <span style="font-size: 18px;">${field.icon}</span>
                                     <div>
                                         <div class="data-label" style="font-size: 13px; color: #374151;">${field.key}</div>
-                                        <div style="font-size: 11px; color: #9ca3af;">${field.value ? field.value.length + ' 字符' : '空值'}</div>
+                                        <div style="font-size: 11px; color: #9ca3af;">${field.originalValue ? field.originalValue.length + ' 字符' : '空值'}${field.value !== field.originalValue ? ' (已脱敏)' : ''}</div>
                                     </div>
                                 </div>
-                                <button class="copy-row copy-btn" data-value="${field.value || ''}" style="flex-shrink: 0; padding: 6px 12px; background: #ffffff; border: 1px solid #e5e7eb; color: #374151; cursor: pointer; font-size: 12px; font-weight: 500; border-radius: 6px;">
+                                <button class="copy-row copy-btn" data-value="${field.originalValue || ''}" style="flex-shrink: 0; padding: 6px 12px; background: #ffffff; border: 1px solid #e5e7eb; color: #374151; cursor: pointer; font-size: 12px; font-weight: 500; border-radius: 6px;">
                                     复制
                                 </button>
                             </div>
