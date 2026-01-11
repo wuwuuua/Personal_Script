@@ -446,6 +446,27 @@
 
     // ===== 初始化逻辑 =====
 
+    // 统一的初始化函数
+    function init() {
+        if (isBilibiliSite) {
+            // B站页面：自动获取并保存数据
+            displayData();
+            console.log('B站数据管理器已加载（自动获取模式）');
+            console.log('- 数据已自动获取并保存');
+            console.log('- 按快捷键 Alt+B 手动获取数据');
+            console.log('- 或在控制台调用 window.getBilibiliData()');
+            window.getBilibiliData = displayData;
+        } else {
+            // 查询页面：显示悬浮按钮
+            createViewerFloatButton();
+            console.log('B站数据管理器已加载（查询模式）');
+            console.log('- 点击右下角悬浮按钮查询数据');
+            console.log('- 按快捷键 Alt+V 查询数据');
+            console.log('- 或在控制台调用 window.viewBilibiliData()');
+            window.viewBilibiliData = showSavedData;
+        }
+    }
+
     // 添加快捷键
     document.addEventListener('keydown', (e) => {
         if (isBilibiliSite) {
@@ -466,45 +487,9 @@
     // 页面加载完成后初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if (isBilibiliSite) {
-                    // B站页面：自动获取并保存数据
-                    displayData();
-                    console.log('B站数据管理器已加载（自动获取模式）');
-                    console.log('- 数据已自动获取并保存');
-                    console.log('- 按快捷键 Alt+B 手动获取数据');
-                    console.log('- 或在控制台调用 window.getBilibiliData()');
-                    window.getBilibiliData = displayData;
-                } else {
-                    // 查询页面：显示悬浮按钮
-                    createViewerFloatButton();
-                    console.log('B站数据管理器已加载（查询模式）');
-                    console.log('- 点击右下角悬浮按钮查询数据');
-                    console.log('- 按快捷键 Alt+V 查询数据');
-                    console.log('- 或在控制台调用 window.viewBilibiliData()');
-                    window.viewBilibiliData = showSavedData;
-                }
-            }, 1000);
+            setTimeout(init, 1000);
         });
     } else {
-        setTimeout(() => {
-            if (isBilibiliSite) {
-                // B站页面：自动获取并保存数据
-                displayData();
-                console.log('B站数据管理器已加载（自动获取模式）');
-                console.log('- 数据已自动获取并保存');
-                console.log('- 按快捷键 Alt+B 手动获取数据');
-                console.log('- 或在控制台调用 window.getBilibiliData()');
-                window.getBilibiliData = displayData;
-            } else {
-                // 查询页面：显示悬浮按钮
-                createViewerFloatButton();
-                console.log('B站数据管理器已加载（查询模式）');
-                console.log('- 点击右下角悬浮按钮查询数据');
-                console.log('- 按快捷键 Alt+V 查询数据');
-                console.log('- 或在控制台调用 window.viewBilibiliData()');
-                window.viewBilibiliData = showSavedData;
-            }
-        }, 1000);
+        setTimeout(init, 1000);
     }
 })();
