@@ -173,6 +173,110 @@
             existingPanel.remove();
         }
 
+        // 添加全局样式
+        if (!document.getElementById('bilibili-viewer-style')) {
+            const style = document.createElement('style');
+            style.id = 'bilibili-viewer-style';
+            style.textContent = `
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+                @keyframes panelFadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translate(-50%, -50%) scale(0.96);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                }
+
+                @keyframes cardSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(8px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes statusPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+
+                .bilibili-card {
+                    transition: all 0.2s ease;
+                }
+
+                .bilibili-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                }
+
+                .copy-btn {
+                    transition: all 0.15s ease;
+                    font-family: 'Inter', -apple-system, sans-serif;
+                }
+
+                .copy-btn:hover {
+                    transform: translateY(-1px);
+                }
+
+                .copy-btn:active {
+                    transform: translateY(0);
+                }
+
+                .close-btn {
+                    transition: all 0.15s ease;
+                }
+
+                .close-btn:hover {
+                    background: rgba(0, 0, 0, 0.08) !important;
+                    transform: rotate(90deg);
+                }
+
+                .action-btn {
+                    transition: all 0.2s ease;
+                    font-family: 'Inter', -apple-system, sans-serif;
+                }
+
+                .action-btn:hover {
+                    transform: translateY(-1px);
+                }
+
+                .data-label {
+                    font-family: 'Inter', -apple-system, sans-serif;
+                    font-weight: 600;
+                }
+
+                .code-display {
+                    font-family: 'JetBrains Mono', 'Monaco', 'Courier New', monospace;
+                }
+
+                /* 自定义滚动条 */
+                .bilibili-content-area::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .bilibili-content-area::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+
+                .bilibili-content-area::-webkit-scrollbar-thumb {
+                    background: rgba(0, 0, 0, 0.15);
+                    border-radius: 3px;
+                }
+
+                .bilibili-content-area::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 0, 0, 0.25);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         // 创建面板
         const panel = document.createElement('div');
         panel.id = 'bilibili-viewer-panel';
@@ -181,99 +285,120 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 400px;
-            background: #fff;
-            border: 2px solid #23ade5;
+            width: 520px;
+            max-width: 90vw;
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
             z-index: 999999;
-            font-family: Arial, sans-serif;
-            animation: slideIn 0.3s ease;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            animation: panelFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         `;
-
-        // 添加动画样式
-        if (!document.getElementById('bilibili-viewer-style')) {
-            const style = document.createElement('style');
-            style.id = 'bilibili-viewer-style';
-            style.textContent = `
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translate(-50%, -50%) scale(0.9);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translate(-50%, -50%) scale(1);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
 
         let content = '';
         const timeStr = savedData ? formatTimeAgo(savedData.timestamp) : '';
 
         if (!savedData) {
             content = `
-                <div style="padding: 12px 16px; background: linear-gradient(135deg, #23ade5, #00a1d6); color: white; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                    <strong style="font-size: 14px;">🔍 B站数据查询器</strong>
-                    <button id="close-panel" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 18px; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">×</button>
+                <div style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #fb7299, #e85d88); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">📊</div>
+                        <div>
+                            <h2 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0; font-family: 'Inter', sans-serif;">B站数据查询器</h2>
+                            <p style="font-size: 12px; color: #6b7280; margin: 0; font-family: 'Inter', sans-serif;">Bilibili Data Viewer</p>
+                        </div>
+                    </div>
+                    <button id="close-panel" class="close-btn" style="background: transparent; border: none; color: #6b7280; font-size: 22px; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">×</button>
                 </div>
-                <div style="padding: 30px 16px; text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
-                    <p style="color: #666; font-size: 14px; margin: 0;">暂无保存的数据</p>
+                <div style="padding: 48px 24px; text-align: center;">
+                    <div style="width: 64px; height: 64px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+                            <line x1="16" y1="8" x2="2" y2="22"></line>
+                            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+                        </svg>
+                    </div>
+                    <p style="color: #1f2937; font-size: 15px; margin: 0 0 8px 0; font-weight: 500; font-family: 'Inter', sans-serif;">暂无数据</p>
+                    <p style="color: #6b7280; font-size: 13px; margin: 0; font-family: 'Inter', sans-serif;">请先在B站页面保存数据</p>
                 </div>
-                <div style="padding: 16px; border-top: 1px solid #f0f0f0;">
-                    <button id="refresh-btn" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #23ade5, #00a1d6); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                        🔄 刷新查询
+                <div style="padding: 20px 24px; border-top: 1px solid #e5e7eb; background: #fafafa;">
+                    <button id="refresh-btn" class="action-btn" style="width: 100%; padding: 12px 20px; background: #fb7299; border: none; color: #ffffff; cursor: pointer; font-size: 14px; font-weight: 600; border-radius: 8px;">
+                        刷新数据
                     </button>
                 </div>
             `;
         } else {
             const cookies = savedData.data.cookies;
             const localStorage = savedData.data.localStorage;
+            const dataFields = [
+                { key: 'SESSDATA', value: cookies.SESSDATA, icon: '🔑', color: '#fb7299' },
+                { key: 'bili_jct', value: cookies.bili_jct, icon: '🛡️', color: '#23ade5' },
+                { key: 'buvid3', value: cookies.buvid3, icon: '📍', color: '#9966ff' },
+                { key: 'DedeUserID', value: cookies.DedeUserID, icon: '👤', color: '#ff9500' },
+                { key: 'ac_time_value', value: localStorage.ac_time_value, icon: '⏰', color: '#34c759' }
+            ];
+
+            // 检查数据新鲜度
+            const ageMinutes = Math.floor((Date.now() - savedData.timestamp) / (1000 * 60));
+            let statusBadge = '';
+            if (ageMinutes < 30) {
+                statusBadge = '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #d1fae5; color: #065f46; border-radius: 12px; font-size: 11px; font-weight: 500;"><span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%;"></span>新鲜</span>';
+            } else if (ageMinutes < 120) {
+                statusBadge = '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #fef3c7; color: #92400e; border-radius: 12px; font-size: 11px; font-weight: 500;"><span style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%;"></span>较新</span>';
+            } else {
+                statusBadge = '<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #fee2e2; color: #991b1b; border-radius: 12px; font-size: 11px; font-weight: 500;"><span style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span>过期</span>';
+            }
 
             content = `
-                <div style="padding: 10px 14px; background: linear-gradient(135deg, #23ade5, #00a1d6); color: white; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                    <strong style="font-size: 13px;">🔍 B站数据查询器 · ${timeStr}</strong>
-                    <button id="close-panel" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 18px; cursor: pointer; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">×</button>
+                <div style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #fb7299, #e85d88); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">📊</div>
+                        <div>
+                            <h2 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0; font-family: 'Inter', sans-serif;">B站数据查询器</h2>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                                <span style="font-size: 12px; color: #6b7280; font-family: 'Inter', sans-serif;">更新于 ${timeStr}</span>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <button id="close-panel" class="close-btn" style="background: transparent; border: none; color: #6b7280; font-size: 22px; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">×</button>
                 </div>
-                <div style="padding: 12px 14px; font-size: 12px;">
-                    <div style="margin: 6px 0; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #23ade5; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #23ade5;">SESSDATA</strong>
-                            <code style="color: #333; font-size: 10px; word-break: break-all;">${cookies.SESSDATA || '未找到'}</code>
+                <div class="bilibili-content-area" style="padding: 20px 24px; max-height: 420px; overflow-y: auto;">
+                    ${dataFields.map((field, index) => `
+                        <div class="bilibili-card" style="margin: 0 0 16px 0; padding: 16px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; animation: cardSlideIn 0.3s ease ${index * 0.06}s both;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">${field.icon}</span>
+                                    <div>
+                                        <div class="data-label" style="font-size: 13px; color: #374151;">${field.key}</div>
+                                        <div style="font-size: 11px; color: #9ca3af;">${field.value ? field.value.length + ' 字符' : '空值'}</div>
+                                    </div>
+                                </div>
+                                <button class="copy-row copy-btn" data-value="${field.value || ''}" style="flex-shrink: 0; padding: 6px 12px; background: #ffffff; border: 1px solid #e5e7eb; color: #374151; cursor: pointer; font-size: 12px; font-weight: 500; border-radius: 6px;">
+                                    复制
+                                </button>
+                            </div>
+                            <code class="code-display" style="display: block; color: #4b5563; font-size: 12px; word-break: break-all; line-height: 1.6; background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e5e7eb;">${field.value || '暂无数据'}</code>
                         </div>
-                        <button class="copy-row" data-value="${cookies.SESSDATA || ''}" style="flex-shrink: 0; padding: 4px 8px; background: #23ade5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📋</button>
-                    </div>
-                    <div style="margin: 6px 0; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #23ade5; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #23ade5;">bili_jct</strong>
-                            <code style="color: #333; font-size: 10px; word-break: break-all;">${cookies.bili_jct || '未找到'}</code>
-                        </div>
-                        <button class="copy-row" data-value="${cookies.bili_jct || ''}" style="flex-shrink: 0; padding: 4px 8px; background: #23ade5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📋</button>
-                    </div>
-                    <div style="margin: 6px 0; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #23ade5; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #23ade5;">buvid3</strong>
-                            <code style="color: #333; font-size: 10px; word-break: break-all;">${cookies.buvid3 || '未找到'}</code>
-                        </div>
-                        <button class="copy-row" data-value="${cookies.buvid3 || ''}" style="flex-shrink: 0; padding: 4px 8px; background: #23ade5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📋</button>
-                    </div>
-                    <div style="margin: 6px 0; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #23ade5; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #23ade5;">DedeUserID</strong>
-                            <code style="color: #333; font-size: 10px; word-break: break-all;">${cookies.DedeUserID || '未找到'}</code>
-                        </div>
-                        <button class="copy-row" data-value="${cookies.DedeUserID || ''}" style="flex-shrink: 0; padding: 4px 8px; background: #23ade5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📋</button>
-                    </div>
-                    <div style="margin: 6px 0; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #23ade5; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #23ade5;">ac_time_value</strong>
-                            <code style="color: #333; font-size: 10px; word-break: break-all;">${localStorage.ac_time_value || '未找到'}</code>
-                        </div>
-                        <button class="copy-row" data-value="${localStorage.ac_time_value || ''}" style="flex-shrink: 0; padding: 4px 8px; background: #23ade5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📋</button>
-                    </div>
+                    `).join('')}
+                </div>
+                <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; background: #fafafa; display: flex; gap: 12px;">
+                    <button id="copy-all-btn" class="action-btn" style="flex: 1; padding: 12px 16px; background: #fb7299; border: none; color: #ffffff; cursor: pointer; font-size: 14px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        复制全部
+                    </button>
+                    <button id="export-json-btn" class="action-btn" style="flex: 1; padding: 12px 16px; background: #ffffff; border: 1px solid #e5e7eb; color: #374151; cursor: pointer; font-size: 14px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        导出JSON
+                    </button>
                 </div>
             `;
         }
@@ -285,7 +410,7 @@
         const closeBtn = document.getElementById('close-panel');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                panel.style.animation = 'slideIn 0.2s ease reverse';
+                panel.style.animation = 'panelFadeIn 0.2s ease reverse';
                 setTimeout(() => panel.remove(), 200);
             });
         }
@@ -308,7 +433,7 @@
                 const value = this.getAttribute('data-value');
                 console.log('复制按钮被点击，值:', value);
 
-                if (!value || value === '未找到') {
+                if (!value || value === 'NULL') {
                     GM_notification({
                         title: '复制失败',
                         text: '该数据为空',
@@ -336,8 +461,12 @@
 
                     if (successful) {
                         const originalText = this.textContent;
-                        this.textContent = '✅';
-                        this.style.background = '#52c41a';
+                        const originalBg = this.style.background;
+                        const originalBorder = this.style.borderColor;
+                        this.textContent = '✓ 已复制';
+                        this.style.background = '#d1fae5';
+                        this.style.borderColor = '#10b981';
+                        this.style.color = '#065f46';
                         GM_notification({
                             title: '复制成功',
                             text: '数据已复制到剪贴板',
@@ -345,7 +474,9 @@
                         });
                         setTimeout(() => {
                             this.textContent = originalText;
-                            this.style.background = '#23ade5';
+                            this.style.background = originalBg;
+                            this.style.borderColor = originalBorder;
+                            this.style.color = '#374151';
                         }, 1500);
                     } else {
                         throw new Error('execCommand failed');
@@ -362,10 +493,95 @@
             });
         });
 
+        // 复制全部按钮
+        const copyAllBtn = document.getElementById('copy-all-btn');
+        if (copyAllBtn) {
+            copyAllBtn.addEventListener('click', () => {
+                if (!savedData || !savedData.data) return;
+
+                const allData = savedData.data;
+                const textToCopy = Object.entries(allData.cookies)
+                    .map(([key, value]) => `${key}=${value}`)
+                    .join('\n') + `\nac_time_value=${allData.localStorage.ac_time_value}`;
+
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                textarea.setSelectionRange(0, 99999);
+
+                try {
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    if (successful) {
+                        const originalHTML = copyAllBtn.innerHTML;
+                        copyAllBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制';
+                        copyAllBtn.style.background = '#10b981';
+                        GM_notification({
+                            title: '复制成功',
+                            text: '全部数据已复制到剪贴板',
+                            timeout: 2000
+                        });
+                        setTimeout(() => {
+                            copyAllBtn.innerHTML = originalHTML;
+                            copyAllBtn.style.background = '#fb7299';
+                        }, 1500);
+                    }
+                } catch (err) {
+                    console.error('复制失败:', err);
+                    document.body.removeChild(textarea);
+                    GM_notification({
+                        title: '复制失败',
+                        text: '无法复制到剪贴板',
+                        timeout: 3000
+                    });
+                }
+            });
+        }
+
+        // 导出JSON按钮
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => {
+                if (!savedData || !savedData.data) return;
+
+                const jsonStr = JSON.stringify(savedData.data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bilibili-data-${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                const originalHTML = exportJsonBtn.innerHTML;
+                exportJsonBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 已导出';
+                exportJsonBtn.style.background = '#d1fae5';
+                exportJsonBtn.style.borderColor = '#10b981';
+                exportJsonBtn.style.color = '#065f46';
+                GM_notification({
+                    title: '导出成功',
+                    text: 'JSON文件已下载',
+                    timeout: 2000
+                });
+                setTimeout(() => {
+                    exportJsonBtn.innerHTML = originalHTML;
+                    exportJsonBtn.style.background = '#ffffff';
+                    exportJsonBtn.style.borderColor = '#e5e7eb';
+                    exportJsonBtn.style.color = '#374151';
+                }, 1500);
+            });
+        }
+
         // 点击面板外部关闭
         panel.addEventListener('click', (e) => {
             if (e.target === panel) {
-                panel.style.animation = 'slideIn 0.2s ease reverse';
+                panel.style.animation = 'panelFadeIn 0.2s ease reverse';
                 setTimeout(() => panel.remove(), 200);
             }
         });
@@ -375,34 +591,38 @@
     function createViewerFloatButton() {
         const floatBtn = document.createElement('div');
         floatBtn.id = 'bilibili-viewer-btn';
-        floatBtn.innerHTML = '🔍';
+        floatBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffffff;">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        `;
         floatBtn.style.cssText = `
             position: fixed;
-            bottom: 100px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #23ade5, #00a1d6);
-            border-radius: 50%;
+            bottom: 80px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #fb7299, #e85d88);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(35, 173, 229, 0.4);
+            box-shadow: 0 4px 16px rgba(251, 114, 153, 0.35);
             z-index: 999999;
             user-select: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         `;
 
         floatBtn.addEventListener('mouseenter', () => {
-            floatBtn.style.transform = 'scale(1.1)';
-            floatBtn.style.boxShadow = '0 6px 16px rgba(35, 173, 229, 0.6)';
+            floatBtn.style.transform = 'scale(1.08) translateY(-2px)';
+            floatBtn.style.boxShadow = '0 8px 24px rgba(251, 114, 153, 0.45)';
         });
 
         floatBtn.addEventListener('mouseleave', () => {
-            floatBtn.style.transform = 'scale(1)';
-            floatBtn.style.boxShadow = '0 4px 12px rgba(35, 173, 229, 0.4)';
+            floatBtn.style.transform = 'scale(1) translateY(0)';
+            floatBtn.style.boxShadow = '0 4px 16px rgba(251, 114, 153, 0.35)';
         });
 
         floatBtn.addEventListener('click', () => {
@@ -421,6 +641,7 @@
             initialX = rect.left;
             initialY = rect.top;
             floatBtn.style.cursor = 'grabbing';
+            floatBtn.style.transition = 'none';
             e.preventDefault();
         });
 
@@ -438,6 +659,7 @@
             if (isDragging) {
                 isDragging = false;
                 floatBtn.style.cursor = 'pointer';
+                floatBtn.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
             }
         });
 
